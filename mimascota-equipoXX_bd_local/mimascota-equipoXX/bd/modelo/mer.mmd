@@ -1,0 +1,52 @@
+erDiagram
+    propietarios ||--o{ mascotas : "es dueño de"
+    propietarios ||--o{ historial_propietarios : "dueño anterior"
+    propietarios ||--o{ historial_propietarios : "dueño nuevo"
+    mascotas ||--o{ historial_propietarios : "cambia de dueño"
+    mascotas ||--o{ citas : "tiene"
+    veterinarios ||--o{ citas : "atiende"
+    servicios ||--o{ citas : "se presta en"
+    citas ||--o| historial_clinico : "genera"
+    mascotas ||--o{ historial_clinico : "acumula"
+    veterinarios ||--o{ historial_clinico : "registra"
+    historial_clinico ||--o{ prescripciones : "incluye"
+    medicamentos ||--o{ prescripciones : "se formula en"
+    mascotas ||--o{ vacunacion : "recibe"
+    vacunas ||--o{ vacunacion : "se aplica"
+    veterinarios ||--o{ vacunacion : "aplica"
+    propietarios {
+        int id_propietario PK
+        string nombre
+        string telefono
+        string email UK
+        tinyint activo
+    }
+    mascotas {
+        int id_mascota PK
+        int id_propietario FK
+        string nombre
+        string especie
+        string raza
+        char sexo
+        date fecha_nacimiento
+        string estado
+    }
+    citas {
+        int id_cita PK
+        int id_mascota FK
+        int id_veterinario FK
+        int id_servicio FK
+        datetime fecha_hora
+        string estado
+    }
+    historial_clinico {
+        int id_historial PK
+        int id_cita FK
+        text diagnostico
+        decimal peso
+    }
+    vacunacion {
+        int id_vacunacion PK
+        date fecha_aplicacion
+        date fecha_proxima_dosis
+    }
