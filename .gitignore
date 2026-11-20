@@ -5,3 +5,10 @@ venv/
 .env
 .env.*
 !.env.example
+**/db.env
+**/respaldos/
+**/logs/
+*.zip
+*.sql.gz
+*.pem
+*.key
