@@ -10,7 +10,7 @@ $ConfigPath = if ($env:MIMASCOTA_CONFIG_PATH) { $env:MIMASCOTA_CONFIG_PATH } els
 $MonitorScript = Join-Path $Root 'monitor.ps1'
 $BackupScript = Join-Path $Root 'respaldo.ps1'
 $TaskPrincipal = New-ScheduledTaskPrincipal -UserId ([Security.Principal.WindowsIdentity]::GetCurrent().Name) -LogonType Interactive -RunLevel Limited
-$TaskSettings = New-ScheduledTaskSettingsSet -StartWhenAvailable -ExecutionTimeLimit (New-TimeSpan -Hours 2) -MultipleInstances IgnoreNew
+$TaskSettings = New-ScheduledTaskSettingsSet -StartWhenAvailable -AllowStartIfOnBatteries -DontStopIfGoingOnBatteries -ExecutionTimeLimit (New-TimeSpan -Hours 2) -MultipleInstances IgnoreNew
 
 function Register-Task {
     param(

@@ -54,7 +54,10 @@ llaves SSH, registros ni archivos de respaldo a Git.
 
 1. Copia `scripts/backup/db.env.example` a `C:\mimascota\config\db.env` y completa
    los valores localmente. Usa `DB_USER=mimascota_backup` y la contraseña que
-   asignaste a esa cuenta al instalar `06_usuarios.sql`.
+   asignaste a esa cuenta al instalar `06_usuarios.sql`. Si tienes varias
+   instancias MySQL/MariaDB, apunta `DB_HOST`, `MYSQLDUMP_PATH` y `MYSQL_PATH`
+   a la instancia que realmente contiene `mimascota`; por ejemplo, XAMPP puede
+   escuchar en `::1` mientras MySQL Server escucha en `127.0.0.1`.
 2. Copia los scripts PowerShell a `C:\mimascota\` y valida primero con
    `.\respaldo.ps1 -LocalOnly`. Sin `-LocalOnly`, el script necesita una llave SSH
    ya autorizada y una entrada verificada en `known_hosts`.
@@ -63,21 +66,28 @@ llaves SSH, registros ni archivos de respaldo a Git.
    Cuando el respaldo local ya funcione, registra también el respaldo diario a
    las 06:00: `powershell.exe -NoProfile -File C:\mimascota\install_tasks.ps1 -BackupOnly`.
    La tarea corre con la sesión del usuario y usa `StartWhenAvailable`; el usuario
-   debe iniciar sesión para que Windows pueda acceder a la llave SSH.
+   debe iniciar sesión para que Windows pueda acceder a la llave SSH. La tarea
+   permite iniciarse y continuar con batería.
 4. En la VM, instala `unzip` y MySQL client. Configura
    `~/.config/mimascota/verify.cnf` a partir de
    `scripts/backup/verify.cnf.example` y aplica `chmod 600` al archivo. El usuario
    de cron necesita permiso de escritura en `verificados/` y `rechazados/`; si
    hace falta, un administrador debe asignarle esos directorios. Luego programa
-   `30 2 * * * /home/respaldo/.local/bin/verificar_respaldo.sh`. El script solo
-   acepta ZIP con un `.sql` completo y al menos 12 tablas; importa en
-   `mimascota_verif` y registra el resultado en `~/logs/mimascota/`.
+   el cron solo después de una prueba manual exitosa. Para una tarea Windows a
+   las 06:00 en UTC-5 y una VM en UTC, usa
+   `30 12 * * * /home/respaldo/.local/bin/verificar_respaldo.sh`. Ajusta la hora
+   si cambia la zona horaria del equipo. El script requiere `unzip`, `mysql` y
+   `sed`; acepta ZIP con un `.sql` completo y al menos 12 tablas, importa en
+   `mimascota_verif` y registra el resultado en `~/logs/mimascota/`. Para evitar
+   requerir `SET_USER_ID` global, quita cláusulas `DEFINER` solo de la copia
+   temporal que importa; no modifica el ZIP original.
 
    Por ejemplo, con autorización administrativa en la VM:
 
    ```sh
    sudo chown respaldo:respaldo /var/backups/mimascota/verificados /var/backups/mimascota/rechazados
-   sudo chmod 750 /var/backups/mimascota/verificados /var/backups/mimascota/rechazados
+   sudo chmod 750 /var/backups/mimascota/verificados
+   sudo chmod 700 /var/backups/mimascota/rechazados
    ```
 
    Un administrador puede preparar la base de verificación y el usuario limitado
@@ -87,9 +97,8 @@ llaves SSH, registros ni archivos de respaldo a Git.
    CREATE DATABASE IF NOT EXISTS mimascota_verif CHARACTER SET utf8mb4;
    CREATE USER IF NOT EXISTS 'mimascota_verifier'@'localhost'
      IDENTIFIED BY 'CAMBIAR_por_una_clave_propia';
-   GRANT SELECT, CREATE, DROP, ALTER, INDEX, REFERENCES, INSERT, UPDATE, DELETE,
-     CREATE VIEW, SHOW VIEW, TRIGGER, CREATE ROUTINE, ALTER ROUTINE, EXECUTE
-     ON mimascota_verif.* TO 'mimascota_verifier'@'localhost';
+   GRANT ALL PRIVILEGES ON mimascota_verif.*
+     TO 'mimascota_verifier'@'localhost';
    ```
 5. `restaurar.ps1` descarga el ZIP verificado más reciente y exige escribir una
    confirmación exacta antes de importar. La restauración es manual y destructiva

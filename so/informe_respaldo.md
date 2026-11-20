@@ -8,9 +8,10 @@ En la captura de estado del 20 de noviembre de 2026, el servicio `MySQL80` estab
 activo y configurado para iniciar como `NT AUTHORITY\NetworkService`. El
 `mysqld.exe` del servicio depende del Administrador de control de servicios
 (`services.exe`); también se observó otro `mysqld.exe` iniciado por
-`xampp-control.exe`. La configuración de respaldo usa `127.0.0.1:3306`, por lo
-que conviene confirmar siempre qué instancia atiende ese puerto antes de
-restaurar datos.
+`xampp-control.exe`. Ambas instancias usaban el puerto 3306 en direcciones
+distintas: MySQL80 en `127.0.0.1` y XAMPP/MariaDB 10.4.32 en `::1`. La base
+`mimascota` usada por el respaldo está en XAMPP; por eso la configuración apunta
+a `::1` y usa los clientes de XAMPP.
 
 No había procesos `python.exe` en ejecución al tomar la muestra; por eso no se
 puede afirmar un proceso padre o una cuenta de ejecución de Python en Windows a
@@ -46,16 +47,26 @@ espacio libre, servicio y procesos MySQL, y antigüedad del último ZIP local.
   disponible.
 
 Estos son umbrales de partida, no mediciones de capacidad. Deben revisarse si
-cambia el tamaño de la base o la carga habitual. La VM está en UTC; la tarea
-cron de las 02:30 se interpreta en UTC.
+cambia el tamaño de la base o la carga habitual. La VM está en UTC; el cron de
+verificación quedó programado a las 12:30 UTC, después del respaldo Windows de
+las 06:00 hora local (UTC-5).
 
 ## Estado de verificación
 
-El monitor local se ejecutó y la tarea `MiMascota-Monitor` quedó registrada.
-El script `verificar_respaldo.sh` quedó desplegado en la cuenta `respaldo`, pero
-cron no se programó: falta la configuración privada de MySQL para
-`mimascota_verif` y permisos de escritura del usuario en `verificados/` y
-`rechazados/`. El respaldo local tampoco pudo ejecutarse porque `DB_PASS` seguía
-vacío al verificar la configuración; por eso no se afirma una verificación de
-archivo real. Se confirmó que el verificador sale con error y deja un registro
-claro si falta `verify.cnf`; no se importó ni se movió ningún respaldo.
+El monitor local y las tareas `MiMascota-Monitor` y `MiMascota-RespaldoDiario`
+quedaron registradas. El respaldo diario se ejecutó con resultado 0 y se
+transfirió a la VM. La configuración de verificación está en
+`/home/respaldo/.config/mimascota/verify.cnf` con permisos 0600; el usuario
+`respaldo` puede escribir en `verificados/` y `rechazados/`.
+
+La importación de prueba falló inicialmente porque MariaDB incluyó
+`DEFINER=root@localhost` y el usuario de verificación no tenía `SET_USER_ID`.
+El verificador se ajustó para retirar `DEFINER` solo del SQL temporal de prueba,
+sin alterar los ZIP originales ni conceder privilegios globales. Luego los ZIP
+se importaron en `mimascota_verif` con 12 tablas y quedaron en `verificados/`;
+el cron corre diariamente a las 12:30 UTC.
+
+El 20 de noviembre de 2026 se restauró en la base local `mimascota` el ZIP
+verificado más reciente. La comprobación posterior encontró 12 tablas, 7
+triggers y 3 vistas, y el log local registró `[OK]`. La VM permanece encendida
+según la preferencia del usuario.

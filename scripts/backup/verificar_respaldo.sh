@@ -27,8 +27,8 @@ if [[ ! "$VERIFY_DB" =~ ^[A-Za-z0-9_]+$ || ! "$MIN_TABLES" =~ ^[0-9]+$ ]]; then
     log '[ERROR] VERIFY_DB o MIN_TABLES no tiene un valor valido.'
     exit 1
 fi
-if ! command -v unzip >/dev/null 2>&1 || ! command -v mysql >/dev/null 2>&1; then
-    log '[ERROR] Se requieren unzip y mysql en PATH.'
+if ! command -v unzip >/dev/null 2>&1 || ! command -v mysql >/dev/null 2>&1 || ! command -v sed >/dev/null 2>&1; then
+    log '[ERROR] Se requieren unzip, mysql y sed en PATH.'
     exit 1
 fi
 for directory in "$INCOMING_DIR" "$VERIFIED_DIR" "$REJECTED_DIR"; do
@@ -92,6 +92,14 @@ process_archive() {
     fi
     if ! grep -Fq 'Dump completed' "$tmpdir/dump.sql"; then
         reject_archive "Falta el marcador 'Dump completed'."
+        return 1
+    fi
+    if ! sed -E -i 's/DEFINER=`[^`]*`@`[^`]*`//g' "$tmpdir/dump.sql"; then
+        reject_archive 'No se pudieron retirar los DEFINER del SQL temporal.'
+        return 1
+    fi
+    if grep -Eq 'DEFINER[[:space:]]*=' "$tmpdir/dump.sql"; then
+        reject_archive 'El SQL contiene un DEFINER no reconocido.'
         return 1
     fi
 
