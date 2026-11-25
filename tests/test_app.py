@@ -2,7 +2,13 @@ import unittest
 from datetime import date, datetime
 from decimal import Decimal
 
-from app import parse_date, parse_datetime, parse_positive_integer, parse_positive_number
+from app import (
+    build_personalized_search_query,
+    parse_date,
+    parse_datetime,
+    parse_positive_integer,
+    parse_positive_number,
+)
 
 
 class InputParsingTests(unittest.TestCase):
@@ -29,6 +35,21 @@ class InputParsingTests(unittest.TestCase):
             parse_positive_number("-1", "Peso")
         with self.assertRaises(ValueError):
             parse_positive_number("NaN", "Peso")
+
+
+class PersonalizedSearchTests(unittest.TestCase):
+    def test_search_uses_only_pet_id_as_a_parameterized_filter(self):
+        sql, params = build_personalized_search_query(" 12 ")
+        self.assertIn("m.id_mascota = %s", sql)
+        self.assertNotIn("p.nombre LIKE %s", sql)
+        self.assertNotIn("m.nombre LIKE %s", sql)
+        self.assertNotIn("DATE(c.fecha_hora) = %s", sql)
+        self.assertEqual(params, (12,))
+
+    def test_search_rejects_non_numeric_or_non_positive_ids(self):
+        for pet_id in ("", "abc", "0", "-1"):
+            with self.subTest(pet_id=pet_id), self.assertRaises(ValueError):
+                build_personalized_search_query(pet_id)
 
 
 if __name__ == "__main__":

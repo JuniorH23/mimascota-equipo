@@ -51,6 +51,8 @@ GRANT EXECUTE ON PROCEDURE mimascota.sp_agendar_cita TO 'mimascota_app'@'localho
 GRANT EXECUTE ON PROCEDURE mimascota.sp_agendar_cita TO 'mimascota_app'@'127.0.0.1';
 GRANT EXECUTE ON PROCEDURE mimascota.sp_registrar_atencion TO 'mimascota_app'@'localhost';
 GRANT EXECUTE ON PROCEDURE mimascota.sp_registrar_atencion TO 'mimascota_app'@'127.0.0.1';
+GRANT EXECUTE ON PROCEDURE mimascota.sp_eliminar_mascota TO 'mimascota_app'@'localhost';
+GRANT EXECUTE ON PROCEDURE mimascota.sp_eliminar_mascota TO 'mimascota_app'@'127.0.0.1';
 GRANT EXECUTE ON FUNCTION mimascota.fn_edad_mascota TO 'mimascota_app'@'localhost';
 GRANT EXECUTE ON FUNCTION mimascota.fn_edad_mascota TO 'mimascota_app'@'127.0.0.1';
 

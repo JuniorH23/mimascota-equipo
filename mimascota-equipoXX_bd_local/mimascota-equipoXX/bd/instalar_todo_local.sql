@@ -526,7 +526,7 @@ GROUP BY p.id_propietario, p.nombre, p.telefono, p.email;
 -- >>>>>>>>>> 05_logica.sql
 -- ==========================================================
 -- PROYECTO: MiMascota - Lógica en el Servidor (05_logica.sql)
--- Cumple BD5: 1 función, 2 procedimientos (1 con transacción) y disparadores
+-- Cumple BD5: 1 función, 3 procedimientos (2 con transacción) y disparadores
 -- ==========================================================
 
 USE mimascota;
@@ -534,6 +534,7 @@ USE mimascota;
 DROP FUNCTION IF EXISTS fn_edad_mascota;
 DROP PROCEDURE IF EXISTS sp_agendar_cita;
 DROP PROCEDURE IF EXISTS sp_registrar_atencion;
+DROP PROCEDURE IF EXISTS sp_eliminar_mascota;
 DROP TRIGGER IF EXISTS tr_vacunacion_bi_validar;
 DROP TRIGGER IF EXISTS tr_servicios_au_precio;
 DROP TRIGGER IF EXISTS tr_mascotas_au_propietario;
@@ -684,7 +685,65 @@ BEGIN
 END //
 
 -- ==========================================================
--- 4. DISPARADORES (TRIGGERS)
+-- 4. PROCEDIMIENTO TRANSACCIONAL: eliminación de mascota y datos dependientes
+-- ==========================================================
+CREATE PROCEDURE sp_eliminar_mascota(IN p_id_mascota INT)
+SQL SECURITY DEFINER
+BEGIN
+    DECLARE v_mascota INT DEFAULT NULL;
+
+    DECLARE EXIT HANDLER FOR SQLEXCEPTION
+    BEGIN
+        ROLLBACK;
+        RESIGNAL;
+    END;
+
+    IF p_id_mascota IS NULL OR p_id_mascota <= 0 THEN
+        SIGNAL SQLSTATE '45000'
+            SET MESSAGE_TEXT = 'Error: El ID de mascota debe ser un entero positivo.';
+    END IF;
+
+    START TRANSACTION;
+
+    SELECT id_mascota INTO v_mascota
+    FROM mascotas
+    WHERE id_mascota = p_id_mascota
+    FOR UPDATE;
+
+    IF v_mascota IS NULL THEN
+        SIGNAL SQLSTATE '45000'
+            SET MESSAGE_TEXT = 'Error: La mascota indicada no existe.';
+    END IF;
+
+    INSERT INTO bitacora (tabla, id_registro, detalle, usuario)
+    VALUES ('mascotas', p_id_mascota, 'Eliminación permanente de mascota y registros relacionados', USER());
+
+    DELETE FROM prescripciones
+    WHERE id_historial IN (
+        SELECT h.id_historial
+        FROM historial_clinico h
+        WHERE h.id_mascota = p_id_mascota
+           OR h.id_cita IN (
+               SELECT c.id_cita FROM citas c WHERE c.id_mascota = p_id_mascota
+           )
+    );
+
+    DELETE FROM historial_clinico
+    WHERE id_mascota = p_id_mascota
+       OR id_cita IN (
+           SELECT c.id_cita FROM citas c WHERE c.id_mascota = p_id_mascota
+       );
+
+    DELETE FROM citas WHERE id_mascota = p_id_mascota;
+    DELETE FROM vacunacion WHERE id_mascota = p_id_mascota;
+    DELETE FROM historial_propietarios WHERE id_mascota = p_id_mascota;
+    DELETE FROM mascotas WHERE id_mascota = p_id_mascota;
+
+    COMMIT;
+END //
+
+-- ==========================================================
+-- 5. DISPARADORES (TRIGGERS)
 -- ==========================================================
 
 -- Trigger 1 (Regla 4): Bloquea vacunas con fecha futura o a mascotas inactivas
@@ -736,7 +795,7 @@ BEGIN
     END IF;
 END //
 
--- Trigger 4 (Regla 5): Impide borrar físicamente mascotas con historial o citas
+-- Trigger 4 (Regla 5): Bloquea el borrado directo; la rutina controlada elimina referencias primero
 CREATE TRIGGER tr_mascotas_bd_proteger
 BEFORE DELETE ON mascotas
 FOR EACH ROW
@@ -848,6 +907,8 @@ GRANT EXECUTE ON PROCEDURE mimascota.sp_agendar_cita TO 'mimascota_app'@'localho
 GRANT EXECUTE ON PROCEDURE mimascota.sp_agendar_cita TO 'mimascota_app'@'127.0.0.1';
 GRANT EXECUTE ON PROCEDURE mimascota.sp_registrar_atencion TO 'mimascota_app'@'localhost';
 GRANT EXECUTE ON PROCEDURE mimascota.sp_registrar_atencion TO 'mimascota_app'@'127.0.0.1';
+GRANT EXECUTE ON PROCEDURE mimascota.sp_eliminar_mascota TO 'mimascota_app'@'localhost';
+GRANT EXECUTE ON PROCEDURE mimascota.sp_eliminar_mascota TO 'mimascota_app'@'127.0.0.1';
 GRANT EXECUTE ON FUNCTION mimascota.fn_edad_mascota TO 'mimascota_app'@'localhost';
 GRANT EXECUTE ON FUNCTION mimascota.fn_edad_mascota TO 'mimascota_app'@'127.0.0.1';
 

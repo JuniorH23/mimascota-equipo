@@ -5,3 +5,7 @@ venv/
 .env
 .env.*
 !.env.example
+/respaldos/
+/logs/
+/scripts/backup/db.env
+/scripts/backup/mysql80-backup.env
