@@ -1,7 +1,6 @@
 [CmdletBinding()]
 param(
-    [string]$SshHost,
-    [string]$SshUser
+    [string]$SshHost
 )
 
 $ErrorActionPreference = 'Stop'
@@ -13,6 +12,7 @@ $ConfigPath = Join-Path $ConfigDir 'mysql80-backup.env'
 $MysqlExe = 'C:\Program Files\MySQL\MySQL Server 8.0\bin\mysql.exe'
 $SshExe = 'C:\Windows\System32\OpenSSH\ssh.exe'
 $ScpExe = 'C:\Windows\System32\OpenSSH\scp.exe'
+$SshUser = 'respaldo'
 $SshKey = Join-Path $HOME '.ssh\mimascota_respaldo'
 $KnownHosts = Join-Path $ConfigDir 'ssh_known_hosts'
 $RemoteRoot = '/var/backups/mimascota'
@@ -62,10 +62,7 @@ function Invoke-MySql {
 try {
     if (-not (Test-Path -LiteralPath $MysqlExe -PathType Leaf)) { throw "No se encontro mysql.exe: $MysqlExe" }
     if ([string]::IsNullOrWhiteSpace($SshHost)) { $SshHost = Read-Host 'Nombre DNS o IP de la VM de respaldos' }
-    if ([string]::IsNullOrWhiteSpace($SshUser)) { $SshUser = Read-Host 'Usuario SSH de la VM de respaldos' }
-    if ($SshHost -notmatch '^[A-Za-z0-9.-]+$' -or $SshUser -notmatch '^[A-Za-z0-9._-]+$') {
-        throw 'El host o usuario SSH no es valido.'
-    }
+    if ($SshHost -notmatch '^[A-Za-z0-9.-]+$') { throw 'El host SSH no es valido.' }
     foreach ($path in @($SshExe, $ScpExe, $SshKey, $KnownHosts)) {
         if (-not (Test-Path -LiteralPath $path -PathType Leaf)) { throw "No se encontro el archivo requerido: $path" }
     }

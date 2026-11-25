@@ -63,9 +63,9 @@ privada, los registros y los ZIP se mantienen fuera del repositorio en `C:\mimas
 - Registros: `C:\mimascota\logs`
 
 En PowerShell abierto como Administrador, ejecuta primero `preparar_mysql80.ps1`.
-Solicita localmente el host y usuario SSH de la VM y la clave de root, verifica
-el SHA-256 del ZIP más reciente
-en la VM, e importa ese ZIP solo si la base `mimascota` no existe en MySQL 8.0.
+Solicita localmente el host SSH de la VM y la clave de root, verifica el SHA-256
+del ZIP más reciente en la VM, e importa ese ZIP solo si la base `mimascota` no
+existe en MySQL 8.0.
 Si ya existe, no la modifica. Crea una cuenta limitada de respaldo y guarda su
 clave en el archivo privado con permisos para SYSTEM y Administradores; no la
 envíes por chat ni la subas a Git.
@@ -78,6 +78,13 @@ anteriores para evitar respaldos duplicados. El ciclo monitorea/inicia
 `MySQL80`, crea un ZIP con SHA-256, lo sube por SCP y confirma que la VM lo
 verificó en `/var/backups/mimascota/verificados/`. Los registros están en
 `C:\mimascota\logs`.
+
+En la VM, configura `scripts/backup/verify.cnf.example` como
+`~/.config/mimascota/verify.cnf` con la clave del usuario limitado
+`mimascota_verifier` y aplica `chmod 600`. La VM también requiere `unzip`,
+`mysql` y `sed`, además de la base `mimascota_verif` y permisos para que el
+usuario SSH `respaldo` escriba en los directorios de recepción y verificación.
+La guía extendida está en [so/informe_respaldo.md](./so/informe_respaldo.md).
 
 La restauración sigue siendo manual y pide confirmación explícita. Descarga el
 ZIP verificado más reciente, valida su SHA-256 y luego importa en MySQL 8.0:
